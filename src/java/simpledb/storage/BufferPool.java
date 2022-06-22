@@ -3,12 +3,12 @@ package simpledb.storage;
 import simpledb.common.Database;
 import simpledb.common.Permissions;
 import simpledb.common.DbException;
-import simpledb.common.DeadlockException;
 import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
 import java.io.*;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -27,6 +27,8 @@ public class BufferPool {
     private static final int DEFAULT_PAGE_SIZE = 4096;
 
     private static int pageSize = DEFAULT_PAGE_SIZE;
+
+    private static Map<PageId, Page> PAGE_ID_TO_PAGE;
     
     /** Default number of pages passed to the constructor. This is used by
     other classes. BufferPool should use the numPages argument to the
@@ -40,6 +42,7 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         // some code goes here
+        PAGE_ID_TO_PAGE = new ConcurrentHashMap<>(numPages);
     }
     
     public static int getPageSize() {
@@ -71,10 +74,16 @@ public class BufferPool {
      * @param pid the ID of the requested page
      * @param perm the requested permissions on the page
      */
+    //Todo lab2
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         // some code goes here
-        return null;
+        Page page = PAGE_ID_TO_PAGE.get(pid);
+        if (page == null) {
+           page =
+           PAGE_ID_TO_PAGE.put(pid, page);
+        }
+        return page;
     }
 
     /**
