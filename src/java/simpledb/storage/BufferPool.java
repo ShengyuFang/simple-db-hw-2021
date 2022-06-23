@@ -36,6 +36,8 @@ public class BufferPool {
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
 
+    private int cacheSize;
+
     /**
      * Creates a BufferPool that caches up to numPages pages.
      *
@@ -43,7 +45,7 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         // some code goes here
-        pageSize = numPages;
+        cacheSize = numPages;
         PAGE_ID_TO_PAGE = new ConcurrentHashMap<>(numPages);
     }
     
@@ -86,7 +88,7 @@ public class BufferPool {
         Page page = PAGE_ID_TO_PAGE.get(pid);
         if (page == null) {
             page = Database.getCatalog().getDatabaseFile(pid.getTableId()).readPage(pid);
-            if (PAGE_ID_TO_PAGE.size() < pageSize) {
+            if (PAGE_ID_TO_PAGE.size() < cacheSize) {
                 PAGE_ID_TO_PAGE.put(pid, page);
             }
         }
