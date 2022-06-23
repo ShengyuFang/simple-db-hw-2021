@@ -113,8 +113,11 @@ public class Tuple implements Serializable {
     public String toString() {
         // some code goes here
         StringBuilder stringBuilder = new StringBuilder();
-        for (Field field : this.fields) {
-            stringBuilder.append(field.toString()).append(whiteSpace);
+        for(int i = 0; i < fields.length; ++i) {
+            stringBuilder.append(fields[i].toString());
+            if(i == fields.length) {
+                stringBuilder.append(whiteSpace);
+            }
         }
         return stringBuilder.toString();
 //        throw new UnsupportedOperationException("Implement this");
