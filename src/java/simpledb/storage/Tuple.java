@@ -33,6 +33,9 @@ public class Tuple implements Serializable {
 
     private Field[] fields;
 
+    //iterator也需要重新实现
+    private int fieldsLength;
+
     /**
      * Create a new tuple with the specified schema (type).
      *
@@ -43,6 +46,7 @@ public class Tuple implements Serializable {
         // some code goes here
         this.tupleDesc = td;
         this.fields = new Field[DEFAULT_CAPACITY];
+        this.fieldsLength = 0;
     }
 
     /**
@@ -90,6 +94,7 @@ public class Tuple implements Serializable {
             }
             fields = Arrays.copyOf(fields, newCapacity);
         }
+        fieldsLength = Math.max(i + 1, fieldsLength);
         fields[i] = f;
     }
 
@@ -128,7 +133,19 @@ public class Tuple implements Serializable {
      */
     public Iterator<Field> fields() {
         // some code goes here
-        return Arrays.stream(fields).iterator();
+        // TODO 并发修改fast-fail未实现
+        return new Iterator<Field>() {
+            private int cursor;
+            @Override
+            public boolean hasNext() {
+                return cursor < fieldsLength;
+            }
+
+            @Override
+            public Field next() {
+                return fields[cursor++];
+            }
+        };
     }
 
     /**
