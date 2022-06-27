@@ -71,6 +71,14 @@ public class HeapPage implements Page {
     /** Retrieve the number of tuples on this page.
         @return the number of tuples on this page
     */
+    /**
+     * TODO 文件头存了什么数据
+     * SimpleDB stores heap files on disk in more or less the same format they are stored in memory. Each file consists
+     * of page data arranged consecutively on disk. Each page consists of one or more bytes representing the header,
+     * followed by the _ page size_ bytes of actual page content. Each tuple requires tuple size * 8 bits for its
+     * content and 1 bit for the header. Thus, the number of tuples that can fit in a single page is:
+     * @return
+     */
     private int getNumTuples() {
         // some code goes here
         return ((BufferPool.getPageSize()*8) / (td.getSize() * 8 + 1));
@@ -185,6 +193,7 @@ public class HeapPage implements Page {
             if (!isSlotUsed(i)) {
                 for (int j=0; j<td.getSize(); j++) {
                     try {
+                        //if it is 0, the tuple is invalid
                         dos.writeByte(0);
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -285,7 +294,13 @@ public class HeapPage implements Page {
      */
     public int getNumEmptySlots() {
         // some code goes here
-        return 0;
+        int count = 0;
+        for (int i = 0; i < numSlots; ++i) {
+            if (isSlotUsed(i)) {
+                ++count;
+            }
+        }
+        return count;
     }
 
     /**
@@ -293,7 +308,7 @@ public class HeapPage implements Page {
      */
     public boolean isSlotUsed(int i) {
         // some code goes here
-        return false;
+        return td.getFieldType(i) != null;
     }
 
     /**
@@ -310,7 +325,22 @@ public class HeapPage implements Page {
      */
     public Iterator<Tuple> iterator() {
         // some code goes here
-        return null;
+        return new Iterator<Tuple>() {
+            private int cursor;
+
+            @Override
+            public boolean hasNext() {
+                while(cursor < numSlots && !isSlotUsed(cursor)) {
+                    ++cursor;
+                }
+                return cursor < numSlots;
+            }
+
+            @Override
+            public Tuple next() {
+                return tuples[cursor];
+            }
+        };
     }
 
 }

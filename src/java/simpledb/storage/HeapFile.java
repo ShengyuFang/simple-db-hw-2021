@@ -23,6 +23,10 @@ import java.util.*;
  */
 public class HeapFile implements DbFile {
 
+    /**
+     * file是binary page file
+     * HeapFileEncoder
+     */
     private File file;
 
     private TupleDesc td;
