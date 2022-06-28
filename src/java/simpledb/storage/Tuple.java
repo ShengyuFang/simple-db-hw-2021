@@ -118,9 +118,9 @@ public class Tuple implements Serializable {
     public String toString() {
         // some code goes here
         StringBuilder stringBuilder = new StringBuilder();
-        for(int i = 0; i < fields.length; ++i) {
+        for(int i = 0; i < fieldsLength; ++i) {
             stringBuilder.append(fields[i].toString());
-            if(i == fields.length) {
+            if(i < fieldsLength - 1) {
                 stringBuilder.append(whiteSpace);
             }
         }
