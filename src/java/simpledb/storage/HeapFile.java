@@ -87,7 +87,7 @@ public class HeapFile implements DbFile {
         Page heapPage;
         try {
             RandomAccessFile raf = new RandomAccessFile(file, "r");
-            int pos = (pid.getPageNumber() - 1) * BufferPool.getPageSize();
+            int pos = pid.getPageNumber() * BufferPool.getPageSize();
             raf.seek(pos);
             byte[] data = new byte[BufferPool.getPageSize()];
             raf.read(data);
