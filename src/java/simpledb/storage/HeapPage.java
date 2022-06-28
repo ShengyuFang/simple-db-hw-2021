@@ -51,6 +51,7 @@ public class HeapPage implements Page {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
 
         // allocate and read the header slots of this page
+        // header使用的为bitmap
         header = new byte[getHeaderSize()];
         for (int i=0; i<header.length; i++)
             header[i] = dis.readByte();
@@ -82,7 +83,6 @@ public class HeapPage implements Page {
     private int getNumTuples() {
         // some code goes here
         return ((BufferPool.getPageSize()*8) / (td.getSize() * 8 + 1));
-
     }
 
     /**
@@ -123,7 +123,7 @@ public class HeapPage implements Page {
      */
     public HeapPageId getId() {
     // some code goes here
-    throw new UnsupportedOperationException("implement this");
+        return pid;
     }
 
     /**
@@ -296,7 +296,7 @@ public class HeapPage implements Page {
         // some code goes here
         int count = 0;
         for (int i = 0; i < numSlots; ++i) {
-            if (isSlotUsed(i)) {
+            if (!isSlotUsed(i)) {
                 ++count;
             }
         }
@@ -308,7 +308,8 @@ public class HeapPage implements Page {
      */
     public boolean isSlotUsed(int i) {
         // some code goes here
-        return td.getFieldType(i) != null;
+        // header bitmap
+        return ((header[i/8] >> (i%8)) & 1) == 1;
     }
 
     /**
@@ -338,7 +339,7 @@ public class HeapPage implements Page {
 
             @Override
             public Tuple next() {
-                return tuples[cursor];
+                return tuples[cursor++];
             }
         };
     }
