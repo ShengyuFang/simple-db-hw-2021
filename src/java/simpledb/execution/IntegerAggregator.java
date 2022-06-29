@@ -1,7 +1,15 @@
 package simpledb.execution;
 
+import simpledb.common.DbException;
 import simpledb.common.Type;
+import simpledb.storage.Field;
+import simpledb.storage.IntField;
 import simpledb.storage.Tuple;
+import simpledb.storage.TupleDesc;
+import simpledb.transaction.TransactionAbortedException;
+
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
  * Knows how to compute some aggregate over a set of IntFields.
@@ -9,6 +17,18 @@ import simpledb.storage.Tuple;
 public class IntegerAggregator implements Aggregator {
 
     private static final long serialVersionUID = 1L;
+
+    private int gbfield;
+
+    private Type gbfieldtype;
+
+    private int afield;
+
+    private Op operator;
+
+    private Tuple[] tuples;
+
+    private int cursor;
 
     /**
      * Aggregate constructor
@@ -27,6 +47,10 @@ public class IntegerAggregator implements Aggregator {
 
     public IntegerAggregator(int gbfield, Type gbfieldtype, int afield, Op what) {
         // some code goes here
+        this.gbfield = gbfield;
+        this.gbfieldtype = gbfieldtype;
+        this.afield = afield;
+        this.operator = what;
     }
 
     /**
@@ -38,6 +62,23 @@ public class IntegerAggregator implements Aggregator {
      */
     public void mergeTupleIntoGroup(Tuple tup) {
         // some code goes here
+        // MIN, MAX, SUM, AVG, COUNT,
+        if (operator.equals(Op.MIN)) {
+
+        } else if(operator.equals(Op.MAX)) {
+
+        } else if(operator.equals(Op.SUM)) {
+
+        } else if(operator.equals(Op.AVG)) {
+            tup.getField(gbfield);
+            for(Iterator<Field> fieldIterator = tup.fields(); fieldIterator.hasNext(); ) {
+                Field field = fieldIterator.next();
+            }
+            tup.setField(gbfield, );
+        } else if(operator.equals(Op.COUNT)) {
+            tup.setField(gbfield, tuples[cursor]);
+            tuples[cursor] = tup;
+        }
     }
 
     /**
@@ -50,8 +91,41 @@ public class IntegerAggregator implements Aggregator {
      */
     public OpIterator iterator() {
         // some code goes here
-        throw new
-        UnsupportedOperationException("please implement me for lab2");
+        return new OpIterator() {
+            private int cursor;
+
+            private int len;
+
+            @Override
+            public void open() throws DbException, TransactionAbortedException {
+
+            }
+
+            @Override
+            public boolean hasNext() throws DbException, TransactionAbortedException {
+                return false;
+            }
+
+            @Override
+            public Tuple next() throws DbException, TransactionAbortedException, NoSuchElementException {
+                return null;
+            }
+
+            @Override
+            public void rewind() throws DbException, TransactionAbortedException {
+
+            }
+
+            @Override
+            public TupleDesc getTupleDesc() {
+                return null;
+            }
+
+            @Override
+            public void close() {
+
+            }
+        }
     }
 
 }
