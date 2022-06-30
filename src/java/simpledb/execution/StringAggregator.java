@@ -17,6 +17,7 @@ import java.util.NoSuchElementException;
 /**
  * Knows how to compute some aggregate over a set of StringFields.
  */
+//TODO NO_GROUPING
 public class StringAggregator implements Aggregator {
 
     private static final long serialVersionUID = 1L;
