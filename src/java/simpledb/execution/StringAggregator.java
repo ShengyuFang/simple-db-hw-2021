@@ -1,7 +1,18 @@
 package simpledb.execution;
 
+import simpledb.common.DbException;
 import simpledb.common.Type;
+import simpledb.storage.Field;
+import simpledb.storage.IntField;
 import simpledb.storage.Tuple;
+import simpledb.storage.TupleDesc;
+import simpledb.storage.TupleIterator;
+import simpledb.transaction.TransactionAbortedException;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.NoSuchElementException;
 
 /**
  * Knows how to compute some aggregate over a set of StringFields.
@@ -9,6 +20,16 @@ import simpledb.storage.Tuple;
 public class StringAggregator implements Aggregator {
 
     private static final long serialVersionUID = 1L;
+
+    private int gbfield;
+
+    private Type gbfieldtype;
+
+    private int afield;
+
+    private Op operator;
+
+    private Map<Field, Tuple> aggregateFieldToTuple;
 
     /**
      * Aggregate constructor
@@ -21,6 +42,11 @@ public class StringAggregator implements Aggregator {
 
     public StringAggregator(int gbfield, Type gbfieldtype, int afield, Op what) {
         // some code goes here
+        this.gbfield = gbfield;
+        this.gbfieldtype = gbfieldtype;
+        this.afield = afield;
+        this.operator = what;
+        this.aggregateFieldToTuple = new HashMap<>();
     }
 
     /**
@@ -29,6 +55,23 @@ public class StringAggregator implements Aggregator {
      */
     public void mergeTupleIntoGroup(Tuple tup) {
         // some code goes here
+        Field groupField = tup.getField(gbfield);
+        Tuple tuple = aggregateFieldToTuple.computeIfAbsent(groupField, key -> {
+            TupleDesc tupleDesc = new TupleDesc(
+                    new Type[]{gbfieldtype, Type.INT_TYPE},
+                    new String[]{tup.getTupleDesc().getFieldName(gbfield), operator.name()}
+            );
+            return new Tuple(tupleDesc);
+        });
+        tuple.setField(0, tup.getField(gbfield));
+        if (operator.equals(Op.COUNT)) {
+            IntField field = (IntField)tuple.getField(1);
+            if(field == null) {
+                tuple.setField(1, new IntField(1));
+            } else {
+                tuple.setField(1, new IntField(field.getValue() + 1));
+            }
+        }
     }
 
     /**
@@ -41,7 +84,44 @@ public class StringAggregator implements Aggregator {
      */
     public OpIterator iterator() {
         // some code goes here
-        throw new UnsupportedOperationException("please implement me for lab2");
+        return new OpIterator() {
+
+            private boolean open;
+
+            private Iterator<Tuple> tuples;
+
+            @Override
+            public void open() throws DbException, TransactionAbortedException {
+                open = true;
+                tuples = aggregateFieldToTuple.values().iterator();
+            }
+
+            @Override
+            public boolean hasNext() throws DbException, TransactionAbortedException {
+                return open && tuples.hasNext();
+            }
+
+            @Override
+            public Tuple next() throws DbException, TransactionAbortedException, NoSuchElementException {
+                return open ? tuples.next() : null;
+            }
+
+            @Override
+            public void rewind() throws DbException, TransactionAbortedException {
+                close();
+                open();
+            }
+
+            @Override
+            public TupleDesc getTupleDesc() {
+                return tuples.next().getTupleDesc();
+            }
+
+            @Override
+            public void close() {
+                open = false;
+            }
+        };
     }
 
 }
