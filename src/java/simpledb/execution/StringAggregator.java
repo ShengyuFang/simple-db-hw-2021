@@ -72,6 +72,13 @@ public class StringAggregator implements Aggregator {
             } else {
                 tuple.setField(1, new IntField(field.getValue() + 1));
             }
+        } else if (operator.equals(Op.SUM)) {
+            IntField field = (IntField)tuple.getField(1);
+            int value = ((IntField)tup.getField(afield)).getValue();
+            if(field != null) {
+                value += field.getValue();
+            }
+            tuple.setField(1, new IntField(value));
         }
     }
 

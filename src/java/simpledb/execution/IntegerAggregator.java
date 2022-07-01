@@ -129,7 +129,6 @@ public class IntegerAggregator implements Aggregator {
     public OpIterator iterator() {
         // some code goes here
         return new OpIterator() {
-            private int cursor;
 
             private boolean open;
 
