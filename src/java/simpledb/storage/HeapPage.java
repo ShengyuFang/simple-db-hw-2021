@@ -19,14 +19,16 @@ import java.io.*;
  */
 public class HeapPage implements Page {
 
-    final HeapPageId pid;
-    final TupleDesc td;
-    final byte[] header;
-    final Tuple[] tuples;
-    final int numSlots;
+    private final HeapPageId pid;
+    private final TupleDesc td;
+    private final byte[] header;
+    private final Tuple[] tuples;
+    private final int numSlots;
 
     byte[] oldData;
     private final Byte oldDataLock= (byte) 0;
+
+    private TransactionId dirtyTransactionId;
 
     /**
      * Create a HeapPage from a set of bytes of data read from disk.
@@ -257,8 +259,14 @@ public class HeapPage implements Page {
     public void deleteTuple(Tuple t) throws DbException {
         // some code goes here
         // not necessary for lab1
-        RecordId recordId = t.getRecordId();
-        int slotId = recordId.getTupleNumber();
+        RecordId r = t.getRecordId();
+        if (!r.getPageId().equals(pid)) {
+            throw new DbException(String.format("this tuple %s is not on this page %s", r.getPageId(), pid));
+        }
+        int slotId = r.getTupleNumber();
+        if (!isSlotUsed(slotId)) {
+            throw new DbException(String.format(""));
+        }
         markSlotUsed(slotId, false);
     }
 
@@ -297,6 +305,12 @@ public class HeapPage implements Page {
     public void markDirty(boolean dirty, TransactionId tid) {
         // some code goes here
 	// not necessary for lab1
+        if(dirty) {
+            dirtyTransactionId = tid;
+        } else {
+            dirtyTransactionId = null;
+        }
+
     }
 
     /**
@@ -305,7 +319,7 @@ public class HeapPage implements Page {
     public TransactionId isDirty() {
         // some code goes here
 	// Not necessary for lab1
-        return null;
+        return dirtyTransactionId;
     }
 
     /**
