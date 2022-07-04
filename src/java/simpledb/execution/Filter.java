@@ -47,7 +47,7 @@ public class Filter extends Operator {
             TransactionAbortedException {
         // some code goes here
         super.open();
-        child.close();
+        child.open();
     }
 
     public void close() {

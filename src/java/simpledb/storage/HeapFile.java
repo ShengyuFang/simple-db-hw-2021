@@ -92,6 +92,7 @@ public class HeapFile implements DbFile {
             byte[] data = new byte[BufferPool.getPageSize()];
             raf.read(data);
             heapPage = new HeapPage((HeapPageId) pid, data);
+            raf.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -105,6 +106,7 @@ public class HeapFile implements DbFile {
         int pos = pid.getPageNumber() * BufferPool.getPageSize();
         raf.seek(pos);
         raf.write(page.getPageData());
+        raf.close();
     }
 
     /**
@@ -121,7 +123,7 @@ public class HeapFile implements DbFile {
         // some code goes here
 
         HeapPageId pageId = new HeapPageId(getId(), pageNo);
-        HeapPage page = (HeapPage)Database.getBufferPool().getPage(tid, pageId, Permissions.READ_ONLY);
+        HeapPage page = (HeapPage)Database.getBufferPool().getPage(tid, pageId, Permissions.READ_WRITE);
         if(page.getNumEmptySlots() == 0) {
             pageNo++;
             page = new HeapPage(new HeapPageId(getId(), pageNo), new byte[BufferPool.getPageSize()]);
@@ -140,12 +142,17 @@ public class HeapFile implements DbFile {
     public ArrayList<Page> deleteTuple(TransactionId tid, Tuple t) throws DbException,
             TransactionAbortedException {
         // some code goes here
-        HeapPage page = (HeapPage)Database.getBufferPool().getPage(tid, t.getRecordId().getPageId(), Permissions.READ_ONLY);
+        HeapPage page = (HeapPage)Database.getBufferPool().getPage(tid, t.getRecordId().getPageId(), Permissions.READ_WRITE);
         //TODO 是否需要mark dirty
-        //page.markDirty(true, tid);
+//        page.markDirty(true, tid);
         page.deleteTuple(t);
         //TODO 需要再写入磁盘
-        //writePage(page);
+        try {
+            writePage(page);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+//        page.markDirty(false, tid);
         ArrayList<Page> removedPages = new ArrayList<>();
         removedPages.add(page);
         return removedPages;

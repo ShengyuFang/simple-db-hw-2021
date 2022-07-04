@@ -63,6 +63,7 @@ public class Insert extends Operator {
     public void open() throws DbException, TransactionAbortedException {
         // some code goes here
         int cnt = 0;
+        opIterator.open();
         while(opIterator.hasNext()) {
             Tuple tuple = opIterator.next();
             try {
@@ -80,12 +81,13 @@ public class Insert extends Operator {
     public void close() {
         // some code goes here
         super.close();
+        opIterator.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
         // some code goes here
-        super.close();
-        super.open();
+        close();
+        open();
     }
 
     /**

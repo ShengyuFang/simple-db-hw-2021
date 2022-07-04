@@ -267,6 +267,7 @@ public class HeapPage implements Page {
         if (!isSlotUsed(slotId)) {
             throw new DbException(String.format(""));
         }
+        tuples[slotId] = null;
         markSlotUsed(slotId, false);
     }
 
