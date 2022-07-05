@@ -1,6 +1,5 @@
 package simpledb.execution;
 
-import net.sf.antcontrib.logic.Throw;
 import simpledb.common.DbException;
 import simpledb.common.Type;
 import simpledb.storage.Tuple;
