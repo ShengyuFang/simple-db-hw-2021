@@ -12,6 +12,9 @@ import java.io.*;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * BufferPool manages the reading and writing of pages into memory from
@@ -29,15 +32,13 @@ public class BufferPool {
     private static final int DEFAULT_PAGE_SIZE = 4096;
 
     private static int pageSize = DEFAULT_PAGE_SIZE;
-
-    private static Map<PageId, Page> PAGE_ID_TO_PAGE;
     
     /** Default number of pages passed to the constructor. This is used by
     other classes. BufferPool should use the numPages argument to the
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
 
-    private int cacheSize;
+    private LRUCache<PageId, Page> PAGE_CACHE;
 
     /**
      * Creates a BufferPool that caches up to numPages pages.
@@ -46,8 +47,7 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         // some code goes here
-        cacheSize = numPages;
-        PAGE_ID_TO_PAGE = new ConcurrentHashMap<>(numPages);
+        PAGE_CACHE = new LRUCache<>(numPages);
     }
     
     public static int getPageSize() {
@@ -86,12 +86,10 @@ public class BufferPool {
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         // some code goes here
-        Page page = PAGE_ID_TO_PAGE.get(pid);
+        Page page = PAGE_CACHE.get(pid);
         if (page == null) {
             page = Database.getCatalog().getDatabaseFile(pid.getTableId()).readPage(pid);
-            if (PAGE_ID_TO_PAGE.size() < cacheSize) {
-                PAGE_ID_TO_PAGE.put(pid, page);
-            }
+            PAGE_CACHE.put(pid, page);
         }
         return page;
     }
@@ -158,7 +156,7 @@ public class BufferPool {
         throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         List<Page> pageList = Database.getCatalog().getDatabaseFile(tableId).insertTuple(tid, t);
-        PAGE_ID_TO_PAGE.put(pageList.get(0).getId(), pageList.get(0));
+        PAGE_CACHE.put(pageList.get(0).getId(), pageList.get(0));
     }
 
     /**
@@ -179,7 +177,7 @@ public class BufferPool {
         // some code goes here
         PageId pageId = t.getRecordId().getPageId();
         Database.getCatalog().getDatabaseFile(pageId.getTableId()).deleteTuple(tid, t);
-        PAGE_ID_TO_PAGE.remove(pageId);
+        PAGE_CACHE.remove(pageId);
     }
 
     /**
@@ -213,6 +211,9 @@ public class BufferPool {
     private synchronized void flushPage(PageId pid) throws IOException {
         // some code goes here
         // not necessary for lab1
+        DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
+        Page page = dbFile.readPage(pid);
+        dbFile.writePage(page);
     }
 
     /** Write all pages of the specified transaction to disk.
@@ -229,6 +230,125 @@ public class BufferPool {
     private synchronized void evictPage() throws DbException {
         // some code goes here
         // not necessary for lab1
+
     }
 
 }
+
+class LRUCache<K, V> {
+    /**
+     Algorithm :
+     1. Everytime when we add the node check if it exists .
+     1.1 if exists then update the value .
+     1.2 move this node to head.
+     1.3 if the capaicity reaches then remove node from tail .
+     1.4 move the current node to head.
+
+     2. Everytime when we get
+     2.1 then we need to move this node to head.
+     3. Remove the node from tail thats it.
+     }
+     **/
+
+    private int  capacity;
+    private AtomicInteger curSize;
+    private ConcurrentHashMap<K,Node<K,V>> map = new ConcurrentHashMap<>();
+    private Node<K,V> head = new Node<>();
+    private Node<K,V> tail = new Node<>();
+    private Lock readWriteLock = new ReentrantLock();
+
+    public LRUCache(int capacity) {
+        this.capacity = capacity;
+        head.next = tail;
+        tail.prev = head;
+        curSize = new AtomicInteger(0);
+    }
+
+    public V get(K key) {
+        if(!map.containsKey(key))
+            return null;
+        Node<K,V> node = map.get(key);
+        // move this current Node to front
+        moveToHead(node);
+        return node.val;
+    }
+
+    public void put(K key, V value) {
+        // The key is already present
+        Node<K,V> curNode = map.get(key);
+        if(curNode != null) {
+            // if value exist update
+            curNode.val=value;
+            // moveTo head , so now its used recently
+            moveToHead(curNode);
+            return;
+        }
+        Node<K,V> newNode = new Node<>(value,key);
+        map.put(key,newNode);
+        addToHead(newNode);
+        if (curSize.incrementAndGet() > capacity) {
+            Node<K,V> nodeToRemove = tail.prev;
+            removeNode(nodeToRemove);
+            map.remove(nodeToRemove.key);
+            curSize.decrementAndGet();
+        }
+    }
+
+    public void remove(K key) {
+        Node<K,V> node = map.get(key);
+        removeNode(node);
+    }
+
+    private void moveToHead(Node<K,V> node) {
+        // remove
+        removeNode(node);
+        addToHead(node);
+    }
+
+    private void removeNode(Node<K,V> node) {
+        try {
+            readWriteLock.lock();
+            Node<K,V> prev = node.prev;
+            Node<K,V> next = node.next;
+            prev.next = next;
+            next.prev = prev;
+        } finally {
+            readWriteLock.unlock();
+        }
+    }
+
+    private void addToHead(Node<K,V> node) {
+        try {
+            readWriteLock.lock();
+            node.next = head.next;
+            node.prev = head;
+            head.next.prev = node;
+            head.next = node;
+        } finally {
+            readWriteLock.unlock();
+        }
+    }
+}
+
+class Node<K,V> {
+    V val;
+    K key;
+    Node<K,V> next ;
+    Node<K,V> prev;
+
+    public Node(V val, K key) {
+        this.val = val;
+        this.key = key;
+    }
+
+    public Node() {
+
+    }
+}
+
+/**
+ * Your LRUCache object will be instantiated and called as such:
+ * LRUCache obj = new LRUCache(capacity);
+ * int param_1 = obj.get(key);
+ * obj.put(key,value);
+ */
