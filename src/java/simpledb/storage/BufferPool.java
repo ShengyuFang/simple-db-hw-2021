@@ -3,14 +3,13 @@ package simpledb.storage;
 import simpledb.common.Database;
 import simpledb.common.Permissions;
 import simpledb.common.DbException;
-import simpledb.execution.SeqScan;
 import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
 import java.io.*;
 
+import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -188,7 +187,10 @@ public class BufferPool {
     public synchronized void flushAllPages() throws IOException {
         // some code goes here
         // not necessary for lab1
-
+        Iterator<Node<PageId,Page>> it = PAGE_CACHE.iterator();
+        while(it.hasNext()) {
+            flushPage(it.next().key);
+        }
     }
 
     /** Remove the specific page id from the buffer pool.
@@ -214,6 +216,7 @@ public class BufferPool {
         DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
         Page page = dbFile.readPage(pid);
         dbFile.writePage(page);
+        page.markDirty(false, null);
     }
 
     /** Write all pages of the specified transaction to disk.
@@ -297,6 +300,10 @@ class LRUCache<K, V> {
     public void remove(K key) {
         Node<K,V> node = map.get(key);
         removeNode(node);
+    }
+
+    public Iterator<Node<K,V>> iterator() {
+        return map.values().iterator();
     }
 
     private void moveToHead(Node<K,V> node) {
