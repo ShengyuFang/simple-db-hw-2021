@@ -155,6 +155,7 @@ public class TableStats {
      * tuple, of which we do not know the value of the field, return the
      * expected selectivity. You may estimate this value from the histograms.
      * */
+    //Todo
     public double avgSelectivity(int field, Predicate.Op op) {
         // some code goes here
         return 1.0;

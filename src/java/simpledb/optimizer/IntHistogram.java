@@ -142,6 +142,7 @@ public class IntHistogram {
      *     join optimization. It may be needed if you want to
      *     implement a more efficient optimization
      * */
+    //Todo
     public double avgSelectivity()
     {
         // some code goes here
