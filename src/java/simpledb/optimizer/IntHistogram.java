@@ -146,6 +146,7 @@ public class IntHistogram {
     public double avgSelectivity()
     {
         // some code goes here
+//        return 1.0 / buckets;
         return (double) count / buckets;
     }
     
