@@ -73,6 +73,9 @@ public class IntHistogram {
     	// some code goes here
         int index = getBucketIndex(v);
         if(op.equals(Predicate.Op.EQUALS) || op.equals(Predicate.Op.LIKE)) {
+            if(v > max || v < min) {
+                return 0.0;
+            }
             return ((double) bucketArray[index] / count);
         } else if (op.equals(Predicate.Op.GREATER_THAN)) {
             if(v > max) {
@@ -123,6 +126,9 @@ public class IntHistogram {
             }
             return (double)(sum + (v - (index * width + min) + 1)*bucketArray[index]) / count;
         } else if (op.equals(Predicate.Op.NOT_EQUALS)) {
+            if(v > max || v < min) {
+                return 1;
+            }
             return ((double) (count - bucketArray[index])) / count;
         }
         return -1.0;
