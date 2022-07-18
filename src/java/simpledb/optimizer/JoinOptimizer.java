@@ -3,6 +3,7 @@ package simpledb.optimizer;
 import simpledb.common.Database;
 import simpledb.ParsingException;
 import simpledb.execution.*;
+import simpledb.storage.Field;
 import simpledb.storage.TupleDesc;
 
 import java.util.*;
@@ -16,6 +17,7 @@ import javax.swing.tree.*;
  * logical plan.
  */
 public class JoinOptimizer {
+    private static TupleDesc tupleDesc;
     final LogicalPlan p;
     final List<LogicalJoinNode> joins;
 
@@ -130,7 +132,11 @@ public class JoinOptimizer {
             // HINT: You may need to use the variable "j" if you implemented
             // a join algorithm that's more complicated than a basic
             // nested-loops join.
-            return -1.0;
+//            scancost(t1) + ntups(t1) x scancost(t2) //IO cost
+//                    + ntups(t1) x ntups(t2)  //CPU cost
+            double scanCostOfT1 = TableStats.getTableStats(j.t1Alias).estimateScanCost();
+            double scanCostOfT2 = TableStats.getTableStats(j.t2Alias).estimateScanCost();
+            return scanCostOfT1 + card1 * scanCostOfT2 + card1 * card2;
         }
     }
 
@@ -176,6 +182,33 @@ public class JoinOptimizer {
                                                    Map<String, Integer> tableAliasToId) {
         int card = 1;
         // some code goes here
+
+        if(joinOp.equals(Predicate.Op.EQUALS)) {
+            if (t1pkey && t2pkey){
+                card = Math.min(card1, card2);
+            }
+            else if (t1pkey) {
+                return card2;
+            }
+            else if (t2pkey){
+                return card1;
+            }
+            else{
+                String table1PureName = Database.getCatalog().getTableName(tableAliasToId.get(table1Alias));
+                String table2PureName = Database.getCatalog().getTableName(tableAliasToId.get(table2Alias));
+
+                int tableSize1 = stats.get(table1PureName).totalTuples();
+                int tableSize2 = stats.get(table2PureName).totalTuples();;
+                return Math.max(tableSize1, tableSize2);
+            }
+        } else {
+            String table1PureName = Database.getCatalog().getTableName(tableAliasToId.get(table1Alias));
+            String table2PureName = Database.getCatalog().getTableName(tableAliasToId.get(table2Alias));
+
+            int tableSize1 = stats.get(table1PureName).totalTuples();
+            int tableSize2 = stats.get(table2PureName).totalTuples();;
+            card = (int)(tableSize1*tableSize2*0.3);
+        }
         return card <= 0 ? 1 : card;
     }
 
