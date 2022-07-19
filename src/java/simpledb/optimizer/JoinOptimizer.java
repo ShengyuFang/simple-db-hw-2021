@@ -7,6 +7,7 @@ import simpledb.storage.Field;
 import simpledb.storage.TupleDesc;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import javax.swing.*;
 import javax.swing.tree.*;
@@ -134,9 +135,7 @@ public class JoinOptimizer {
             // nested-loops join.
 //            scancost(t1) + ntups(t1) x scancost(t2) //IO cost
 //                    + ntups(t1) x ntups(t2)  //CPU cost
-            double scanCostOfT1 = TableStats.getTableStats(j.t1Alias).estimateScanCost();
-            double scanCostOfT2 = TableStats.getTableStats(j.t2Alias).estimateScanCost();
-            return scanCostOfT1 + card1 * scanCostOfT2 + card1 * card2;
+            return cost1 + card1 * cost2 + card1 * card2;
         }
     }
 
@@ -271,7 +270,30 @@ public class JoinOptimizer {
 
         // some code goes here
         //Replace the following
-        return joins;
+        PlanCache planCache = new PlanCache();
+        Set<LogicalJoinNode> lastSet = null;
+        for(int i = 1; i <= joins.size(); ++i) {
+            Set<Set<LogicalJoinNode>> subJoinSets = enumerateSubsets(joins, i);
+
+            for(Set<LogicalJoinNode> s : subJoinSets) {
+                double bestPlanCost = Double.MAX_VALUE;
+                for(LogicalJoinNode node : s) {
+                    CostCard plan = computeCostAndCardOfSubplan(stats, filterSelectivities, node, s, bestPlanCost, planCache);
+                    if(plan != null && plan.cost < bestPlanCost) {
+                        bestPlanCost = plan.cost;
+                        planCache.addPlan(s, bestPlanCost, plan.card, plan.plan);
+                    }
+                }
+                if(i == joins.size()) {
+                    lastSet = s;
+                }
+            }
+        }
+        List<LogicalJoinNode> bestPlan = planCache.getOrder(lastSet);
+        if(explain) {
+            printJoins(bestPlan, planCache, stats, filterSelectivities);
+        }
+        return bestPlan;
     }
 
     // ===================== Private Methods =================================
